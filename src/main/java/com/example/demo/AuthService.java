@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 @Service
 class AuthService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthService.class);
+
     private final TokenService tokenService;
     private final UserDetailsManager userDetailsManager;
 
@@ -24,11 +26,20 @@ class AuthService {
         try {
             userDetails = userDetailsManager.loadUserByUsername(tokenRequest.email());
         } catch (UsernameNotFoundException e) {
-            throw new RuntimeException(
-                String.format("User with email: %s was not found", tokenRequest.email()));
+            // Log specific error for debugging/monitoring
+            log.error("User not found: {}", tokenRequest.email());
+            // Return generic message to client for security
+            throw new RuntimeException("Invalid credentials");
         }
+
+        // SECURITY RISK: Using plain text password comparison because we're using
+        // InMemoryUserDetailsManager with non-encoded passwords.
+        // In production use: passwordEncoder.matches(tokenRequest.password(), userDetails.getPassword())
         if (!Objects.equals(userDetails.getPassword(), tokenRequest.password())) {
-            throw new RuntimeException(String.format("Password mismatch for user: %s", tokenRequest.email()));
+            // Log the specific error for debugging/monitoring
+            log.error("Password mismatch for user: {}", tokenRequest.email());
+            // Return generic message to client for security
+            throw new RuntimeException("Invalid credentials");
         }
         var permissions = extractPermissions(userDetails);
         var jwtToken = tokenService.generateToken(userDetails.getUsername(), permissions);

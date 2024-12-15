@@ -17,5 +17,4 @@ class AuthController {
     public TokenResponseDto authenticateWithToken(@RequestBody TokenRequestDto request) {
         return authService.authenticateWithToken(request);
     }
-
 }
